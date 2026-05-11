@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>LM Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── VARIABLES ─────────────────────────────── */
+:root {
+  --navy:     #0D2137;
+  --navy2:    #0a1929;
+  --blue:     #1E88E5;
+  --blue-l:   #E3F2FD;
+  --gold:     #F59E0B;
+  --gold-l:   #FFFBEB;
+  --green:    #059669;
+  --green-l:  #D1FAE5;
+  --red:      #DC2626;
+  --red-l:    #FEE2E2;
+  --teal:     #0F766E;
+  --teal-l:   #CCFBF1;
+  --purple:   #7C3AED;
+  --purple-l: #EDE9FE;
+  --orange:   #EA580C;
+  --bg:       #F1F5F9;
+  --bg2:      #F8FAFC;
+  --border:   #E2E8F0;
+  --text:     #1E293B;
+  --text2:    #475569;
+  --white:    #FFFFFF;
+  --radius:   12px;
+  --font-head: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* iPhone 15 safe areas */
+  --safe-top:    env(safe-area-inset-top,    54px);
+  --safe-bottom: env(safe-area-inset-bottom, 34px);
+  --safe-left:   env(safe-area-inset-left,   0px);
+  --safe-right:  env(safe-area-inset-right,  0px);
+
+  /* Bottom nav height */
+  --bnav: 56px;
+}
+
+/* ── RESET ──────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--bg);
+  overflow-x: hidden;
+  /* Space for top bar + bottom nav */
+  padding-top: calc(var(--safe-top) + 52px);
+  padding-bottom: calc(var(--bnav) + var(--safe-bottom) + 8px);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── PROGRESS BAR ───────────────────────────── */
+#progress {
+  position: fixed; top: 0; left: 0;
+  height: 3px; z-index: 900;
+  background: linear-gradient(90deg, var(--gold), var(--blue));
+  width: 0%; transition: width .1s;
+}
+
+/* ── TOP HEADER ─────────────────────────────── */
+.top-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: calc(var(--safe-top) + 52px);
+  padding-top: var(--safe-top);
+  background: var(--navy2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 20px;
+  padding-right: 16px;
+  z-index: 500;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.top-logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.top-logo-dot {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--blue), #0D47A1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.top-logo-text {
+  font-family: var(--font-head);
+  font-size: 15px; font-weight: 700;
+  color: var(--white);
+}
+.hamburger {
+  width: 44px; height: 44px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 5px;
+  background: rgba(255,255,255,.08);
+  border: none; border-radius: 10px; cursor: pointer;
+}
+.hamburger span {
+  display: block; width: 20px; height: 2px;
+  background: rgba(255,255,255,.8); border-radius: 2px;
+  transition: transform .25s, opacity .25s;
+}
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── DRAWER OVERLAY ─────────────────────────── */
+.drawer-overlay {
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(0,0,0,.55);
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.drawer-overlay.open { opacity: 1; pointer-events: all; }
+
+/* ── DRAWER ─────────────────────────────────── */
+.drawer {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 82vw; max-width: 320px;
+  background: var(--navy2);
+  z-index: 700;
+  transform: translateX(-100%);
+  transition: transform .3s cubic-bezier(.25,.46,.45,.94);
+  overflow-y: auto;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--bnav) + var(--safe-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+.drawer.open { transform: translateX(0); }
+.drawer-header {
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.drawer-badge {
+  background: var(--gold); color: var(--navy);
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; padding: 3px 10px;
+  border-radius: 20px; display: inline-block; margin-bottom: 8px;
+}
+.drawer-title {
+  font-family: var(--font-head); font-size: 14px;
+  font-weight: 700; color: var(--white); line-height: 1.3;
+}
+.toc { list-style: none; padding: 8px 0; }
+.toc li a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 20px;
+  font-size: 14px; font-weight: 500;
+  color: rgba(255,255,255,.55);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: all .15s;
+  min-height: 44px;
+}
+.toc li a:active { background: rgba(255,255,255,.05); }
+.toc li a.active {
+  color: var(--gold); border-left-color: var(--gold);
+  background: rgba(245,158,11,.08);
+}
+.toc li a .num {
+  font-family: var(--font-mono); font-size: 11px;
+  opacity: .4; min-width: 22px;
+}
+.toc .sub a { padding-left: 36px; font-size: 13px; opacity: .8; }
+
+/* ── BOTTOM NAV ─────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: calc(var(--bnav) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: var(--navy2);
+  border-top: 1px solid rgba(255,255,255,.08);
+  display: flex; align-items: stretch;
+  z-index: 500;
+}
+.bnav-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px; text-decoration: none;
+  color: rgba(255,255,255,.4);
+  font-size: 9px; font-weight: 600;
+  letter-spacing: .3px; text-transform: uppercase;
+  transition: color .15s;
+  min-height: 44px;
+}
+.bnav-item:active { color: var(--gold); }
+.bnav-item.active { color: var(--gold); }
+.bnav-icon { font-size: 18px; }
+
+/* ── COVER ──────────────────────────────────── */
+.cover {
+  background: linear-gradient(155deg, var(--navy) 0%, #1565C0 55%, var(--blue) 100%);
+  min-height: 88vh;
+  display: flex; align-items: flex-end;
+  padding: 0 22px 40px;
+  position: relative; overflow: hidden;
+}
+.cover::before {
+  content: ''; position: absolute;
+  right: -60px; top: -60px;
+  width: 280px; height: 280px; border-radius: 50%;
+  background: rgba(255,255,255,.05);
+}
+.cover::after {
+  content: ''; position: absolute;
+  left: -40px; bottom: 80px;
+  width: 180px; height: 180px; border-radius: 50%;
+  background: rgba(255,255,255,.03);
+}
+.cover-content { position: relative; z-index: 1; width: 100%; }
+.cover-eyebrow {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--gold); letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 14px;
+  display: block;
+}
+.cover h1 {
+  font-family: var(--font-head); font-size: 32px;
+  font-weight: 800; color: var(--white);
+  line-height: 1.1; margin-bottom: 14px;
+  border: none; padding: 0;
+}
+.cover h1 em { color: var(--gold); font-style: normal; }
+.cover-sub {
+  font-size: 15px; color: rgba(255,255,255,.75);
+  line-height: 1.65; margin-bottom: 24px;
+}
+.cover-pills {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 8px;
+}
+.pill {
+  background: rgba(255,255,255,.11); color: var(--white);
+  font-size: 11px; font-weight: 500;
+  padding: 5px 13px; border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.14);
+}
+.pill.accent {
+  background: rgba(245,158,11,.22);
+  border-color: rgba(245,158,11,.4); color: var(--gold);
+}
+.cover-scroll-hint {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 24px; color: rgba(255,255,255,.35);
+  font-size: 12px;
+}
+
+/* ── SECTIONS ───────────────────────────────── */
+section {
+  padding: 36px 20px 28px;
+  border-bottom: 1px solid var(--border);
+}
+.section-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--blue);
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::before {
+  content: ''; display: inline-block;
+  width: 16px; height: 2px; background: var(--blue);
+}
+h2 {
+  font-family: var(--font-head); font-size: 24px;
+  font-weight: 800; color: var(--navy);
+  margin-bottom: 10px; line-height: 1.2;
+}
+h3 {
+  font-family: var(--font-head); font-size: 17px;
+  font-weight: 700; color: var(--navy);
+  margin: 28px 0 10px;
+  padding-left: 12px; border-left: 3px solid var(--blue);
+}
+h4 {
+  font-family: var(--font-head); font-size: 14px;
+  font-weight: 700; color: var(--teal); margin: 18px 0 6px;
+}
+p { margin-bottom: 12px; color: var(--text); }
+.lead {
+  font-size: 15px; color: var(--text2);
+  margin-bottom: 20px; line-height: 1.8;
+}
+ul, ol { padding-left: 20px; margin-bottom: 12px; }
+li { margin-bottom: 6px; font-size: 15px; }
+strong { font-weight: 600; color: var(--navy); }
+
+/* ── TABLES (mobile: horizontal scroll) ─────── */
+.table-wrap {
+  overflow-x: auto; margin: 16px -20px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrap-inner { min-width: 540px; padding: 0 20px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead tr { background: var(--navy); }
+th {
+  padding: 10px 12px; text-align: left;
+  font-weight: 700; font-family: var(--font-head);
+  font-size: 11px; color: #fff; white-space: nowrap;
+}
+tbody tr:nth-child(even) { background: var(--blue-l); }
+td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 13px; }
+
+/* ── CODE ───────────────────────────────────── */
+pre {
+  background: var(--navy); color: #e2e8f0;
+  border-radius: var(--radius); padding: 16px;
+  margin: 14px -20px; font-family: var(--font-mono);
+  font-size: 12px; line-height: 1.65;
+  overflow-x: auto; border-left: 4px solid var(--gold);
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+}
+pre .label {
+  position: absolute; top: 0; right: 0;
+  background: var(--gold); color: var(--navy);
+  font-size: 9px; font-weight: 700;
+  padding: 3px 10px; border-radius: 0 var(--radius) 0 6px;
+  letter-spacing: 1px;
+}
+code {
+  font-family: var(--font-mono); font-size: 12px;
+  background: var(--bg); color: var(--red);
+  padding: 2px 6px; border-radius: 4px;
+  border: 1px solid var(--border);
+}
+pre code { background: transparent; color: inherit; border: none; padding: 0; }
+
+/* ── CALLOUTS ───────────────────────────────── */
+.callout {
+  border-radius: var(--radius); padding: 14px 16px;
+  margin: 14px 0; border-left: 4px solid; font-size: 14px;
+}
+.callout p { margin: 0; line-height: 1.6; }
+.callout-title {
+  font-weight: 700; margin-bottom: 6px;
+  display: block; font-family: var(--font-head); font-size: 13px;
+}
+.callout-info    { background: var(--blue-l);   border-color: var(--blue);   color: #1e40af; }
+.callout-warn    { background: var(--gold-l);   border-color: var(--gold);   color: #92400e; }
+.callout-danger  { background: var(--red-l);    border-color: var(--red);    color: #991b1b; }
+.callout-success { background: var(--green-l);  border-color: var(--green);  color: #065f46; }
+.callout-note    { background: var(--purple-l); border-color: var(--purple); color: #4c1d95; }
+
+/* ── CARD GRID ──────────────────────────────── */
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px; margin: 16px 0;
+}
+.card-grid.single { grid-template-columns: 1fr; }
+.card {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+}
+.card-icon { font-size: 24px; margin-bottom: 8px; }
+.card-title {
+  font-family: var(--font-head); font-size: 13px;
+  font-weight: 700; color: var(--navy); margin-bottom: 5px;
+}
+.card-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.card-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: .8px;
+  text-transform: uppercase; color: var(--white);
+  padding: 2px 8px; border-radius: 10px;
+  display: inline-block; margin-top: 8px;
+}
+
+/* ── DIAGRAM BOX ────────────────────────────── */
+.diagram-box {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 14px 12px;
+  margin: 16px 0; overflow: hidden;
+}
+.diagram-title {
+  font-family: var(--font-head); font-size: 11px;
+  font-weight: 700; color: var(--text2);
+  text-align: center; margin-bottom: 12px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.diagram-box svg { width: 100%; height: auto; display: block; }
+
+/* ── CHECKLIST ──────────────────────────────── */
+.checklist { list-style: none; padding: 0; margin: 12px 0; }
+.checklist li {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 14px 14px;
+  border-radius: var(--radius); margin-bottom: 8px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  cursor: pointer; transition: background .15s, border-color .15s;
+  user-select: none;
+  min-height: 54px;
+}
+.checklist li.checked { background: var(--green-l); border-color: var(--green); }
+.check-box {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .2s; font-size: 13px; margin-top: 1px;
+}
+.checklist li.checked .check-box {
+  background: var(--green); border-color: var(--green); color: var(--white);
+}
+.check-text { font-size: 14px; line-height: 1.55; }
+
+/* ── TABS ───────────────────────────────────── */
+.tab-btns-wrap {
+  overflow-x: auto; margin: 0 -20px; padding: 0 20px 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tab-btns-wrap::-webkit-scrollbar { display: none; }
+.tab-btns {
+  display: flex; gap: 8px;
+  width: max-content; margin-bottom: 14px;
+}
+.tab-btn {
+  padding: 10px 18px; border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  font-family: var(--font-head); font-size: 13px;
+  font-weight: 600; cursor: pointer;
+  color: var(--text2); white-space: nowrap;
+  min-height: 44px;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.tab-btn.active { background: var(--navy); color: var(--white); border-color: var(--navy); }
+.tab-panel { display: none; animation: fadeIn .25s ease; }
+.tab-panel.active { display: block; }
+
+/* ── EXPLORER CARDS ─────────────────────────── */
+.explorer-card {
+  background: var(--white); border: 2px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 8px;
+  overflow: hidden; cursor: pointer;
+}
+.explorer-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 14px; min-height: 64px;
+}
+.explorer-num {
+  font-family: var(--font-head); font-size: 24px;
+  font-weight: 800; min-width: 32px; flex-shrink: 0;
+}
+.explorer-meta { flex: 1; min-width: 0; }
+.explorer-meta h4 {
+  font-size: 14px; font-weight: 700;
+  margin: 0 0 2px; font-family: var(--font-head);
+  color: var(--navy);
+}
+.explorer-meta p { font-size: 12px; color: var(--text2); margin: 0; }
+.explorer-chevron {
+  font-size: 14px; color: var(--text2);
+  transition: transform .3s; flex-shrink: 0;
+  width: 30px; text-align: center;
+}
+.explorer-card.open .explorer-chevron { transform: rotate(180deg); }
+.explorer-body {
+  display: none; padding: 0 14px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+}
+.explorer-card.open .explorer-body { display: block; animation: slideDown .2s ease; }
+
+/* ── GLOSARIO ───────────────────────────────── */
+.glosario-search {
+  width: 100%; padding: 13px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius); font-size: 16px;
+  margin-bottom: 16px; background: var(--white);
+  -webkit-appearance: none;
+  font-family: var(--font-body);
+}
+.glosario-search:focus { outline: none; border-color: var(--blue); }
+.glosario-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.glosario-item {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 14px 14px;
+}
+.glosario-term {
+  font-family: var(--font-head); font-size: 13px;
+  font-weight: 700; color: var(--navy); margin-bottom: 4px;
+}
+.glosario-def { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.glosario-item.hidden { display: none; }
+
+/* ── CALC BOX ───────────────────────────────── */
+.calc-box {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; margin: 16px 0;
+}
+.calc-header {
+  background: var(--navy); padding: 14px 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.calc-header h4 {
+  font-family: var(--font-head); font-size: 15px;
+  font-weight: 700; color: var(--white); margin: 0;
+}
+.calc-body { padding: 18px 16px; }
+.calc-inputs { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 18px; }
+.input-group label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--text2); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.input-group select, .input-group input {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px; font-family: var(--font-mono);
+  font-size: 15px; color: var(--text); background: var(--bg);
+  -webkit-appearance: none; appearance: none;
+}
+.input-group select:focus, .input-group input:focus {
+  outline: none; border-color: var(--blue);
+}
+.calc-output {
+  background: var(--navy); border-radius: var(--radius);
+  padding: 18px 14px;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; text-align: center;
+}
+.output-item .val {
+  font-family: var(--font-head); font-size: 18px;
+  font-weight: 800; color: var(--gold);
+}
+.output-item .lbl {
+  font-size: 10px; color: rgba(255,255,255,.55);
+  text-transform: uppercase; letter-spacing: .8px; margin-top: 4px;
+}
+
+/* ── SPEED BARS ─────────────────────────────── */
+.speed-bar-wrap {
+  display: flex; align-items: center; gap: 8px; margin: 8px 0;
+}
+.speed-bar-label {
+  font-size: 11px; color: var(--text2);
+  min-width: 100px; font-family: var(--font-mono);
+  line-height: 1.3;
+}
+.speed-bar-track {
+  flex: 1; background: var(--border);
+  border-radius: 4px; height: 10px; overflow: hidden;
+}
+.speed-bar-fill { height: 100%; border-radius: 4px; }
+.speed-bar-val {
+  font-size: 11px; font-family: var(--font-mono);
+  font-weight: 600; color: var(--text2);
+  min-width: 68px; text-align: right;
+}
+
+/* ── BADGE ROW ──────────────────────────────── */
+.badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+.badge {
+  font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px;
+  letter-spacing: .4px; display: inline-block;
+}
+
+/* ── TIMELINE ───────────────────────────────── */
+.timeline { position: relative; padding: 16px 0; margin: 14px 0; }
+.timeline::before {
+  content: ''; position: absolute;
+  left: 22px; top: 0; bottom: 0;
+  width: 2px; background: var(--border);
+}
+.tl-item { position: relative; padding: 0 0 20px 56px; }
+.tl-dot {
+  position: absolute; left: 13px; top: 4px;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 3px solid var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: var(--white);
+}
+.tl-content {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px;
+}
+.tl-label {
+  font-family: var(--font-head); font-size: 13px;
+  font-weight: 700; color: var(--navy); margin-bottom: 4px;
+}
+.tl-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+/* ── SVG MOBILE FLOW (vertical) ─────────────── */
+.flow-mobile {
+  display: flex; flex-direction: column; gap: 0;
+  align-items: center; padding: 8px 0;
+}
+.flow-node {
+  width: 100%; max-width: 280px;
+  border-radius: 10px; padding: 12px 16px;
+  text-align: center;
+}
+.flow-node-title {
+  font-family: var(--font-head); font-size: 13px;
+  font-weight: 700; color: white; margin-bottom: 2px;
+}
+.flow-node-sub { font-size: 11px; color: rgba(255,255,255,.65); }
+.flow-arrow {
+  font-size: 20px; color: var(--blue);
+  line-height: 1; padding: 4px 0;
+}
+
+/* ── ANIMATIONS ─────────────────────────────── */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── CONTRAST FIXES ─────────────────────────── */
+pre strong, pre em { color: inherit; }
+.cover *, .cover h1, .cover h1 em { color: inherit; }
+.callout-note strong    { color: #312e81; }
+.callout-warn strong    { color: #78350f; }
+.callout-danger strong  { color: #7f1d1d; }
+.callout-success strong { color: #064e3b; }
+.callout-info strong    { color: #1e3a8a; }
+.explorer-body strong   { color: var(--navy); }
+thead th { color: #ffffff !important; }
+tbody td strong { color: var(--navy); }
+.calc-output strong { color: rgba(255,255,255,.95); }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<!-- TOP HEADER -->
+<header class="top-header">
+  <div class="top-logo">
+    <div class="top-logo-dot">🤖</div>
+    <span class="top-logo-text">LM Studio</span>
+  </div>
+  <button class="hamburger" id="hamburger-btn" onclick="toggleDrawer()" aria-label="Menú">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+
+<!-- DRAWER NAV -->
+<nav class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div class="drawer-badge">Manual Completo</div>
+    <div class="drawer-title">LM Studio — Servidor Privado de IA</div>
+  </div>
+  <ul class="toc">
+    <li><a href="#arquitectura" data-sec="arquitectura" onclick="closeDrawer()"><span class="num">01</span>¿Qué es LM Studio?</a></li>
+    <li><a href="#tipos-modelos" data-sec="tipos-modelos" onclick="closeDrawer()"><span class="num">02</span>Tipos de Modelos</a></li>
+    <li><a href="#censurado" data-sec="censurado" onclick="closeDrawer()"><span class="num">03</span>Censurado vs Uncensored</a></li>
+    <li><a href="#hardware" data-sec="hardware" onclick="closeDrawer()"><span class="num">04</span>Requisitos de Hardware</a></li>
+    <li><a href="#instalacion" data-sec="instalacion" onclick="closeDrawer()"><span class="num">05</span>Instalación</a></li>
+    <li><a href="#modelos" data-sec="modelos" onclick="closeDrawer()"><span class="num">06</span>Descargar Modelos</a></li>
+    <li><a href="#servidor" data-sec="servidor" onclick="closeDrawer()"><span class="num">07</span>Servidor Local (API)</a></li>
+    <li><a href="#red-local" data-sec="red-local" onclick="closeDrawer()"><span class="num">08</span>Red Local (LAN)</a></li>
+    <li><a href="#fuentes" data-sec="fuentes" onclick="closeDrawer()"><span class="num">09</span>Fuentes Oficiales</a></li>
+    <li><a href="#riesgos" data-sec="riesgos" onclick="closeDrawer()"><span class="num">10</span>Riesgos</a></li>
+    <li><a href="#beneficios" data-sec="beneficios" onclick="closeDrawer()"><span class="num">11</span>Beneficios</a></li>
+    <li><a href="#flujo-sesion" data-sec="flujo-sesion" onclick="closeDrawer()"><span class="num">12</span>Flujo Completo</a></li>
+    <li><a href="#glosario" data-sec="glosario" onclick="closeDrawer()"><span class="num">GL</span>Glosario</a></li>
+  </ul>
+</nav>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <a class="bnav-item" href="#arquitectura"><span class="bnav-icon">🧠</span>Qué es</a>
+  <a class="bnav-item" href="#hardware"><span class="bnav-icon">💻</span>Hardware</a>
+  <a class="bnav-item" href="#instalacion"><span class="bnav-icon">⚙️</span>Instalar</a>
+  <a class="bnav-item" href="#servidor"><span class="bnav-icon">🌐</span>Servidor</a>
+  <a class="bnav-item" href="#glosario"><span class="bnav-icon">📖</span>Glosario</a>
+</nav>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-content">
+    <span class="cover-eyebrow">IA Local · 16 GB+ RAM · Abril 2026</span>
+    <h1>LM Studio —<br><em>Servidor Privado</em><br>de IA</h1>
+    <p class="cover-sub">Descarga, ejecuta y sirve modelos de lenguaje en tu laptop. Sin internet. Sin suscripciones. 100% tuyo.</p>
+    <div class="cover-pills">
+      <span class="pill accent">Windows / Linux</span>
+      <span class="pill">NVIDIA CUDA</span>
+      <span class="pill">Gratis</span>
+      <span class="pill">Offline</span>
+      <span class="pill">Uncensored OK</span>
+    </div>
+    <div class="cover-scroll-hint">
+      <span>↓</span><span>Desliza para explorar</span>
+    </div>
+  </div>
+</div>
+
+<!-- S01: ARQUITECTURA -->
+<section id="arquitectura">
+  <div class="section-label">Sección 01</div>
+  <h2>¿Qué es LM Studio?</h2>
+  <p class="lead">ChatGPT dentro de tu laptop — sin internet, sin facturas, sin que nadie vea tus consultas.</p>
+
+  <p>Con LM Studio el proceso entero ocurre localmente: el modelo carga en tu RAM/VRAM, hace los cálculos y responde sin salir de tu máquina. <strong>LM Studio actúa como interfaz gráfica sobre llama.cpp</strong>, la biblioteca de bajo nivel que soporta NVIDIA CUDA, AMD ROCm, Apple Metal y CPU pura.</p>
+
+  <h3>Flujo de inferencia</h3>
+  <div class="diagram-box">
+    <div class="diagram-title">Tú → LM Studio → llama.cpp → Modelo → Respuesta</div>
+    <div class="flow-mobile">
+      <div class="flow-node" style="background:#0D2137">
+        <div class="flow-node-title">🧑 TÚ ESCRIBES</div>
+        <div class="flow-node-sub">Pregunta / prompt</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-node" style="background:#1565C0">
+        <div class="flow-node-title">🖥 LM Studio</div>
+        <div class="flow-node-sub">GUI · gestión de modelos</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-node" style="background:#0F766E">
+        <div class="flow-node-title">⚙️ llama.cpp</div>
+        <div class="flow-node-sub">Motor de inferencia CUDA/CPU</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-node" style="background:#7C3AED">
+        <div class="flow-node-title">🧬 Modelo .gguf</div>
+        <div class="flow-node-sub">Parámetros en VRAM/RAM</div>
+      </div>
+      <div class="flow-arrow" style="color:var(--gold)">↓</div>
+      <div class="flow-node" style="background:var(--gold)">
+        <div class="flow-node-title" style="color:#0D2137">✅ RESPUESTA</div>
+        <div class="flow-node-sub" style="color:rgba(0,0,0,.6)">Token a token · privada</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 id="cuantizacion">Cuantización (Q4, Q5, Q8)</h3>
+  <p>Un modelo en precisión completa puede pesar 30–130 GB. La cuantización lo comprime a menos bits — como pasar de foto RAW a JPEG de alta calidad: el ojo apenas nota la diferencia.</p>
+
+  <div class="tab-btns-wrap">
+    <div class="tab-btns">
+      <button class="tab-btn active" onclick="setTabQ('q4',this)">Q4_K_M ⭐</button>
+      <button class="tab-btn" onclick="setTabQ('q5',this)">Q5_K_M</button>
+      <button class="tab-btn" onclick="setTabQ('q8',this)">Q8_0</button>
+      <button class="tab-btn" onclick="setTabQ('q2',this)">Q2 / Q3</button>
+      <button class="tab-btn" onclick="setTabQ('f16',this)">F16</button>
+    </div>
+  </div>
+  <div id="panel-q4" class="tab-panel active">
+    <div class="callout callout-success">
+      <span class="callout-title">✅ Q4_K_M — Estándar Recomendado</span>
+      <p><strong>4 bits · ~4.8 GB (8B) · Calidad muy buena · Rápida.</strong> El punto óptimo. Para GPU 8–12 GB VRAM: empieza siempre aquí.</p>
+    </div>
+  </div>
+  <div id="panel-q5" class="tab-panel">
+    <div class="callout callout-info">
+      <span class="callout-title">🔵 Q5_K_M — Alta Calidad</span>
+      <p><strong>5 bits · ~5.7 GB (8B).</strong> Mejor que Q4 en razonamiento complejo y código. Usa cuando tienes VRAM extra (12+ GB).</p>
+    </div>
+  </div>
+  <div id="panel-q8" class="tab-panel">
+    <div class="callout callout-info">
+      <span class="callout-title">🔵 Q8_0 — Máxima Fidelidad</span>
+      <p><strong>8 bits · ~9.2 GB (8B).</strong> Prácticamente igual al modelo original. Requiere 16+ GB VRAM para modelos 8B.</p>
+    </div>
+  </div>
+  <div id="panel-q2" class="tab-panel">
+    <div class="callout callout-warn">
+      <span class="callout-title">⚠️ Q2/Q3 — Solo casos extremos</span>
+      <p><strong>2–3 bits · 2.5–3.3 GB.</strong> Degradación notable — el modelo puede producir respuestas incoherentes. Solo si la RAM es muy limitada.</p>
+    </div>
+  </div>
+  <div id="panel-f16" class="tab-panel">
+    <div class="callout callout-note">
+      <span class="callout-title">🔬 F16 — Investigación / Fine-tuning</span>
+      <p><strong>16 bits · ~16 GB (8B).</strong> Precisión completa. Solo para fine-tuning o benchmarks. Inviable en uso cotidiano.</p>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-wrap-inner">
+      <table>
+        <thead><tr><th>Formato</th><th>Bits</th><th>Tamaño (8B)</th><th>Calidad</th></tr></thead>
+        <tbody>
+          <tr><td>Q2_K</td><td>2</td><td>~2.5 GB</td><td>Baja</td></tr>
+          <tr><td>Q3_K_M</td><td>3</td><td>~3.3 GB</td><td>Aceptable</td></tr>
+          <tr><td><strong>Q4_K_M ⭐</strong></td><td>4</td><td>~4.8 GB</td><td>Muy buena</td></tr>
+          <tr><td>Q5_K_M</td><td>5</td><td>~5.7 GB</td><td>Excelente</td></tr>
+          <tr><td>Q8_0</td><td>8</td><td>~9.2 GB</td><td>Máxima</td></tr>
+          <tr><td>F16</td><td>16</td><td>~16 GB</td><td>Original</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- S02: TIPOS DE MODELOS -->
+<section id="tipos-modelos">
+  <div class="section-label">Sección 02</div>
+  <h2>Tipos de Modelos</h2>
+  <p class="lead">El tipo de entrenamiento define cómo se comporta el modelo. Toca cada tipo para ver los detalles.</p>
+  <div id="explorer-modelos"></div>
+</section>
+
+<!-- S03: CENSURADO VS UNCENSORED -->
+<section id="censurado">
+  <div class="section-label">Sección 03</div>
+  <h2>Censurado vs. Uncensored</h2>
+  <p class="lead">La diferencia no está en los datos base sino en el proceso de alineación posterior al preentrenamiento.</p>
+
+  <div class="tab-btns-wrap">
+    <div class="tab-btns">
+      <button class="tab-btn active" onclick="setTabC('censurado',this)">🔒 Censurado</button>
+      <button class="tab-btn" onclick="setTabC('uncensored',this)">🔓 Uncensored</button>
+      <button class="tab-btn" onclick="setTabC('legalidad',this)">⚖️ Legalidad</button>
+    </div>
+  </div>
+  <div id="panel-censurado" class="tab-panel active">
+    <div class="card-grid single">
+      <div class="card" style="border-left:4px solid var(--blue)">
+        <div class="card-icon">🔒</div>
+        <div class="card-title">Modelo Censurado (RLHF/DPO)</div>
+        <div class="card-desc">
+          Ej: Llama-4-8B-Instruct (Meta oficial)<br><br>
+          • Rechaza solicitudes sensibles activamente<br>
+          • Restricciones sobre armas, hacking, adultos<br>
+          • Ideal para asistentes de trabajo / empresarial<br>
+          • Puede ser "sobre-cauteloso" en ficción creativa
+        </div>
+      </div>
+      <div class="card" style="border-left:4px solid var(--orange)">
+        <div class="card-icon">🔓</div>
+        <div class="card-title">Modelo Uncensored (Abliterated)</div>
+        <div class="card-desc">
+          Ej: Llama-3-8B-Lexi-Uncensored<br><br>
+          • Responde sin filtros activos<br>
+          • Ideal para escritura adulta, roleplay, investigación<br>
+          • Libertad total de expresión y creación<br>
+          • Requiere uso responsable del usuario
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="panel-uncensored" class="tab-panel">
+    <div class="callout callout-success">
+      <span class="callout-title">✅ ¿Funciona en LM Studio?</span>
+      <p><strong>Sí.</strong> LM Studio no tiene mecanismo de verificación de contenido. Cualquier .gguf válido se carga y corre. Creadores confiables: <strong>Eric Hartford</strong> (Dolphin), <strong>Orenguteng</strong> (Lexi), <strong>bartowski</strong> (GGUF).</p>
+    </div>
+    <p style="margin-top:12px">Busca en Hugging Face: <code>uncensored gguf</code>, <code>dolphin gguf</code>, <code>abliterated gguf</code></p>
+  </div>
+  <div id="panel-legalidad" class="tab-panel">
+    <div class="callout callout-warn">
+      <span class="callout-title">⚖️ Legalidad</span>
+      <p>La legalidad depende del <strong>uso</strong>, no del modelo. Descargarlo es legal en la mayoría de jurisdicciones. Lo ilegal es el output dañino que generes, no el modelo en sí.</p>
+    </div>
+    <div class="callout callout-danger" style="margin-top:10px">
+      <span class="callout-title">⛔ Advertencia</span>
+      <p>Nunca uses modelos uncensored para generar contenido ilegal. El output es tu responsabilidad legal exclusiva.</p>
+    </div>
+  </div>
+</section>
+
+<!-- S04: HARDWARE -->
+<section id="hardware">
+  <div class="section-label">Sección 04</div>
+  <h2>Requisitos de Hardware</h2>
+  <p class="lead">La VRAM es el factor más importante. Cuando el modelo cabe en GPU la velocidad es 10–20× mayor que en CPU.</p>
+
+  <h3>Velocidad según dónde corre</h3>
+  <div class="diagram-box">
+    <div class="speed-bar-wrap">
+      <span class="speed-bar-label">GPU completa</span>
+      <div class="speed-bar-track"><div class="speed-bar-fill" style="width:100%;background:var(--green)"></div></div>
+      <span class="speed-bar-val" style="color:var(--green)">30–80 t/s</span>
+    </div>
+    <div class="speed-bar-wrap">
+      <span class="speed-bar-label">GPU + RAM</span>
+      <div class="speed-bar-track"><div class="speed-bar-fill" style="width:30%;background:var(--gold)"></div></div>
+      <span class="speed-bar-val" style="color:var(--gold)">5–12 t/s</span>
+    </div>
+    <div class="speed-bar-wrap">
+      <span class="speed-bar-label">CPU pura</span>
+      <div class="speed-bar-track"><div class="speed-bar-fill" style="width:6%;background:var(--red)"></div></div>
+      <span class="speed-bar-val" style="color:var(--red)">1–3 t/s</span>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-wrap-inner">
+      <table>
+        <thead><tr><th>VRAM</th><th>Modelos que caben</th><th>Velocidad</th><th>Cuant.</th></tr></thead>
+        <tbody>
+          <tr><td>4 GB</td><td>3B–4B</td><td>15–25 t/s</td><td>Q4_K_M</td></tr>
+          <tr><td>6 GB</td><td>7B</td><td>20–35 t/s</td><td>Q4_K_M</td></tr>
+          <tr><td><strong>8 GB</strong></td><td>7B–8B</td><td>30–50 t/s</td><td>Q4/Q5</td></tr>
+          <tr><td><strong>10–12 GB</strong></td><td>13B–14B</td><td>25–40 t/s</td><td>Q4_K_M</td></tr>
+          <tr><td>16 GB</td><td>20B–30B</td><td>15–30 t/s</td><td>Q4_K_M</td></tr>
+          <tr><td>24 GB</td><td>70B (baja cuant.)</td><td>10–20 t/s</td><td>Q2/Q3</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="calc-vram">
+    <div class="calc-box">
+      <div class="calc-header">
+        <span>🧮</span>
+        <h4>Calculadora de VRAM</h4>
+      </div>
+      <div class="calc-body">
+        <div class="calc-inputs">
+          <div class="input-group">
+            <label>Parámetros del modelo</label>
+            <select id="calc-params" onchange="calcVRAM()">
+              <option value="3">3B (ej: Phi-2)</option>
+              <option value="7">7B (Mistral, Qwen)</option>
+              <option value="8" selected>8B (Llama 4, Gemma)</option>
+              <option value="13">13B (Llama 2 13B)</option>
+              <option value="14">14B (Phi-4)</option>
+              <option value="20">20B</option>
+              <option value="30">30B</option>
+              <option value="70">70B (Llama 3 70B)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Cuantización</label>
+            <select id="calc-quant" onchange="calcVRAM()">
+              <option value="0.31">Q2_K (2 bits)</option>
+              <option value="0.41">Q3_K_M (3 bits)</option>
+              <option value="0.60" selected>Q4_K_M ⭐</option>
+              <option value="0.71">Q5_K_M (5 bits)</option>
+              <option value="1.15">Q8_0 (8 bits)</option>
+              <option value="2.0">F16 (16 bits)</option>
+            </select>
+          </div>
+        </div>
+        <div class="calc-output">
+          <div class="output-item">
+            <div class="val" id="out-tamano">—</div>
+            <div class="lbl">Tamaño</div>
+          </div>
+          <div class="output-item">
+            <div class="val" id="out-vram">—</div>
+            <div class="lbl">VRAM mín.</div>
+          </div>
+          <div class="output-item">
+            <div class="val" id="out-recomendacion">—</div>
+            <div class="lbl">¿Viable?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-success">
+    <span class="callout-title">✅ Tu perfil: 16 GB+ RAM, GPU 8–12 GB VRAM</span>
+    <p>Modelos de <strong>7B–13B en Q4_K_M</strong> completamente en GPU → 30–50 tok/s. Para modelos más grandes usa RAM como desbordamiento.</p>
+  </div>
+</section>
+
+<!-- S05: INSTALACIÓN -->
+<section id="instalacion">
+  <div class="section-label">Sección 05</div>
+  <h2>Instalación</h2>
+  <p class="lead">Sin dependencias extras — no necesitas Python, CUDA separado ni nada adicional. Solo descarga y ejecuta.</p>
+
+  <div class="callout callout-warn">
+    <span class="callout-title">⚠️ Descarga solo desde lmstudio.ai</span>
+    <p>Archivo: <code>LM-Studio-x.x.x-Setup.exe</code> · aprox. 400–700 MB</p>
+  </div>
+
+  <h3>Checklist — marca cada paso al completarlo</h3>
+  <ul class="checklist" id="checklist-instalacion"></ul>
+
+  <pre><span class="label">CMD</span># Verificar versión de CUDA (debe ser 11.8+ / 12.x)
+nvidia-smi
+# Busca: | CUDA Version: 12.4 |</pre>
+</section>
+
+<!-- S06: MODELOS -->
+<section id="modelos">
+  <div class="section-label">Sección 06</div>
+  <h2>Descargar Modelos</h2>
+  <p class="lead">LM Studio incluye un explorador integrado conectado a Hugging Face. Sin crear cuenta ni navegar externamente.</p>
+
+  <h3>Indicadores de compatibilidad</h3>
+  <div class="card-grid">
+    <div class="card" style="border-top:3px solid var(--green)">
+      <div class="card-icon">🟢</div>
+      <div class="card-title">Verde — OK</div>
+      <div class="card-desc">Cabe en tu VRAM. Velocidad óptima.</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--gold)">
+      <div class="card-icon">🟡</div>
+      <div class="card-title">Amarillo — Marginal</div>
+      <div class="card-desc">Parte irá a RAM del sistema. Más lento.</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--red)">
+      <div class="card-icon">🔴</div>
+      <div class="card-title">Rojo — No</div>
+      <div class="card-desc">Excede tu memoria. Baja cuantización.</div>
+    </div>
+  </div>
+
+  <h3>Modelos recomendados (2026)</h3>
+  <div class="table-wrap">
+    <div class="table-wrap-inner">
+      <table>
+        <thead><tr><th>Modelo</th><th>Tamaño</th><th>Tipo</th><th>Ideal para</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Llama 4 8B Instruct</strong></td><td>~5 GB</td><td>Instruct</td><td>Chat, escritura</td></tr>
+          <tr><td><strong>Qwen3 7B</strong></td><td>~4.5 GB</td><td>Instruct</td><td>Código, multi-idioma</td></tr>
+          <tr><td><strong>Mistral Small 7B</strong></td><td>~4.5 GB</td><td>Instruct</td><td>RAG, instrucciones</td></tr>
+          <tr><td><strong>Gemma 3 12B</strong></td><td>~7.5 GB</td><td>Instruct</td><td>Chat fluido</td></tr>
+          <tr><td><strong>DeepSeek R1 8B</strong></td><td>~5 GB</td><td>Reasoning</td><td>Lógica, matemáticas</td></tr>
+          <tr><td><strong>Phi-4 14B</strong></td><td>~9 GB</td><td>Instruct</td><td>Código complejo</td></tr>
+          <tr><td><strong>Dolphin Llama3</strong></td><td>~5 GB</td><td>Uncensored</td><td>Roleplay, ficción</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="callout-title">GPU Offload — muy importante</span>
+    <p>Mueve el slider al <strong>máximo</strong>. Más capas en GPU = 5–20× más rápido. Si ves "Out of Memory", bájalo gradualmente.</p>
+  </div>
+
+  <p>Los modelos se guardan en:<br><code>C:\Users\USUARIO\.lmstudio\models\</code></p>
+</section>
+
+<!-- S07: SERVIDOR -->
+<section id="servidor">
+  <div class="section-label">Sección 07</div>
+  <h2>Servidor Local (API)</h2>
+  <p class="lead">Expone una API HTTP compatible con OpenAI en el puerto 1234. Cambia la URL base — sin cambiar el código de tus apps.</p>
+
+  <h3>Checklist — activar el servidor</h3>
+  <ul class="checklist" id="checklist-servidor"></ul>
+
+  <pre><span class="label">BROWSER</span>http://localhost:1234/v1/models
+# Si ves JSON = servidor activo ✅</pre>
+
+  <div class="tab-btns-wrap">
+    <div class="tab-btns">
+      <button class="tab-btn active" onclick="setTabCode('ps',this)">PowerShell</button>
+      <button class="tab-btn" onclick="setTabCode('python',this)">Python</button>
+    </div>
+  </div>
+  <div id="panel-ps" class="tab-panel active">
+<pre><span class="label">PowerShell</span>$body = '{"model":"local","messages":[{"role":"user","content":"Hola"}]}'
+curl -X POST http://localhost:1234/v1/chat/completions `
+  -H "Content-Type: application/json" `
+  -d $body</pre>
+  </div>
+  <div id="panel-python" class="tab-panel">
+<pre><span class="label">Python</span>from openai import OpenAI
+client = OpenAI(
+  base_url="http://localhost:1234/v1",
+  api_key="lm-studio"
+)
+resp = client.chat.completions.create(
+  model="local",
+  messages=[{"role":"user","content":"Hola"}],
+  temperature=0.7, max_tokens=500
+)
+print(resp.choices[0].message.content)</pre>
+  </div>
+
+  <div class="callout callout-success">
+    <span class="callout-title">✅ Compatible con LangChain, AutoGen, CrewAI, n8n, Open WebUI</span>
+    <p>Cambia <code>base_url</code> a <code>http://localhost:1234/v1</code> en cualquier framework.</p>
+  </div>
+</section>
+
+<!-- S08: RED LOCAL -->
+<section id="red-local">
+  <div class="section-label">Sección 08</div>
+  <h2>Red Local (LAN)</h2>
+  <p class="lead">Cambia el binding a 0.0.0.0 para que otros dispositivos en tu Wi-Fi se conecten a tu modelo como servidor compartido.</p>
+
+  <div class="callout callout-warn">
+    <span class="callout-title">⚠️ Solo en redes de confianza (casa/oficina)</span>
+    <p>Nunca expongas el servidor a internet sin protección.</p>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-wrap-inner">
+      <table>
+        <thead><tr><th>Paso</th><th>Acción</th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Ejecutar <code>ipconfig</code></td><td>Anotar IP local (ej: 192.168.1.105)</td></tr>
+          <tr><td>2</td><td>Developer → Server Settings → 0.0.0.0</td><td>Escucha en toda la red</td></tr>
+          <tr><td>3</td><td>Reiniciar el servidor</td><td>URL: http://TU_IP:1234/v1</td></tr>
+          <tr><td>4</td><td>Navegar desde otro dispositivo</td><td>Debe mostrar JSON del modelo</td></tr>
+          <tr><td>5</td><td>Instalar Open WebUI (opcional)</td><td>Interfaz ChatGPT en la red</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <pre><span class="label">CMD</span>ipconfig
+# Adaptador LAN inalambrica Wi-Fi:
+#   Direccion IPv4: 192.168.1.105</pre>
+</section>
+
+<!-- S09: FUENTES -->
+<section id="fuentes">
+  <div class="section-label">Sección 09</div>
+  <h2>Fuentes Oficiales</h2>
+  <p class="lead">Descarga modelos solo de fuentes verificadas. Un .gguf malicioso puede comportarse de formas inesperadas.</p>
+
+  <div class="card-grid single">
+    <div class="card" style="border-top:3px solid var(--blue)">
+      <div class="card-icon">🤗</div>
+      <div class="card-title">Hugging Face — huggingface.co</div>
+      <div class="card-desc">Creadores confiables de GGUF: <strong>bartowski</strong>, <strong>unsloth</strong>, <strong>TheBloke</strong> (modelos antiguos). Siempre revisa descargas y comentarios.</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--gold)">
+      <div class="card-icon">🚀</div>
+      <div class="card-title">LM Studio Hub — lmstudio.ai/hub</div>
+      <div class="card-desc">Modelos curados con indicadores de compatibilidad. Accesible desde la pestaña Discover. <strong>La forma más segura de empezar.</strong></div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--green)">
+      <div class="card-icon">🏢</div>
+      <div class="card-title">Repos Oficiales</div>
+      <div class="card-desc"><strong>Meta:</strong> meta-llama/<br><strong>Google:</strong> google/gemma-3<br><strong>Mistral:</strong> mistralai/<br><strong>Alibaba:</strong> Qwen/Qwen3<br><strong>Microsoft:</strong> microsoft/phi-4</div>
+    </div>
+  </div>
+
+  <div class="callout callout-danger">
+    <span class="callout-title">⛔ Nunca descargues de sitios desconocidos</span>
+    <p>Verifica siempre el hash SHA256 si el creador lo publica en la descripción del modelo.</p>
+  </div>
+</section>
+
+<!-- S10: RIESGOS -->
+<section id="riesgos">
+  <div class="section-label">Sección 10</div>
+  <h2>Riesgos y Buenas Prácticas</h2>
+  <p class="lead">Lo que nadie te dice antes de empezar. Toca cada riesgo para ver la solución.</p>
+  <div id="explorer-riesgos"></div>
+</section>
+
+<!-- S11: BENEFICIOS -->
+<section id="beneficios">
+  <div class="section-label">Sección 11</div>
+  <h2>Beneficios de la IA Local</h2>
+  <p class="lead">Por qué vale la pena frente a servicios en la nube.</p>
+
+  <div class="card-grid">
+    <div class="card" style="border-top:3px solid var(--blue)">
+      <div class="card-icon">🔒</div>
+      <div class="card-title">Privacidad Total</div>
+      <div class="card-desc">Tus conversaciones nunca salen de tu laptop. Sin logs en servidores externos.</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--green)">
+      <div class="card-icon">💰</div>
+      <div class="card-title">Costo Cero</div>
+      <div class="card-desc">Sin suscripción mensual de $20–$200 USD. Sin límite de tokens ni mensajes.</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--orange)">
+      <div class="card-icon">🔓</div>
+      <div class="card-title">Sin Censura</div>
+      <div class="card-desc">Elige modelo alineado o uncensored. Sin rechazos arbitrarios en ficción creativa.</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--teal)">
+      <div class="card-icon">✈️</div>
+      <div class="card-title">Sin Internet</div>
+      <div class="card-desc">Funciona en aviones, zonas sin WiFi, cortes de internet. Disponible 24/7.</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--purple)">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">API Compatible</div>
+      <div class="card-desc">Compatible con LangChain, AutoGen, CrewAI, n8n. Sin cambiar tu código.</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--navy)">
+      <div class="card-icon">🎛️</div>
+      <div class="card-title">Control Total</div>
+      <div class="card-desc">Ajusta temperatura, context window, repeat penalty. Sin cajas negras.</div>
+    </div>
+  </div>
+</section>
+
+<!-- S12: FLUJO COMPLETO -->
+<section id="flujo-sesion">
+  <div class="section-label">Sección 12</div>
+  <h2>Flujo Completo</h2>
+  <p class="lead">El orden importa — no inicies el servidor antes de que el modelo esté completamente cargado.</p>
+
+  <div class="timeline" id="timeline-sesion"></div>
+
+  <h3>Problemas comunes</h3>
+  <div id="explorer-troubleshoot"></div>
+</section>
+
+<!-- GLOSARIO -->
+<section id="glosario">
+  <div class="section-label">Glosario</div>
+  <h2>Glosario</h2>
+  <input class="glosario-search" type="search" placeholder="🔍 Buscar término..." oninput="filterGlosario(this.value)" autocomplete="off" autocorrect="off">
+  <div class="glosario-grid" id="glosario-grid"></div>
+</section>
+
+<script>
+// ── DRAWER ────────────────────────────────────
+function toggleDrawer() {
+  const d = document.getElementById('drawer');
+  const o = document.getElementById('drawer-overlay');
+  const b = document.getElementById('hamburger-btn');
+  const open = d.classList.toggle('open');
+  o.classList.toggle('open', open);
+  b.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('hamburger-btn').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── PROGRESS BAR ──────────────────────────────
+window.addEventListener('scroll', () => {
+  const el = document.documentElement;
+  const pct = (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100;
+  document.getElementById('progress').style.width = pct + '%';
+}, { passive: true });
+
+// ── ACTIVE TOC ────────────────────────────────
+document.querySelectorAll('section[id]').forEach(sec => {
+  new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) {
+      document.querySelectorAll('.toc a').forEach(a => a.classList.remove('active'));
+      const a = document.querySelector(`.toc a[data-sec="${sec.id}"]`);
+      if (a) a.classList.add('active');
+    }
+  }, { threshold: 0.2 }).observe(sec);
+});
+
+// ── CHECKLIST ─────────────────────────────────
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+  el.querySelector('.check-box').textContent = el.classList.contains('checked') ? '✓' : '';
+}
+
+// ── TABS (helper genérico) ────────────────────
+function setTabGroup(panels, value, btn, prefix) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').startsWith(prefix)) b.classList.remove('active');
+  });
+  panels.forEach(id => document.getElementById(id) && document.getElementById(id).classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(value) && document.getElementById(value).classList.add('active');
+}
+
+function setTabQ(val, btn) {
+  setTabGroup(['panel-q4','panel-q5','panel-q8','panel-q2','panel-f16'], 'panel-'+val, btn, 'setTabQ');
+}
+function setTabC(val, btn) {
+  setTabGroup(['panel-censurado','panel-uncensored','panel-legalidad'], 'panel-'+val, btn, 'setTabC');
+}
+function setTabCode(val, btn) {
+  setTabGroup(['panel-ps','panel-python'], 'panel-'+val, btn, 'setTabCode');
+}
+
+// ── GLOSARIO ──────────────────────────────────
+function filterGlosario(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.glosario-item').forEach(el => {
+    const match =
+      el.querySelector('.glosario-term').textContent.toLowerCase().includes(q) ||
+      el.querySelector('.glosario-def').textContent.toLowerCase().includes(q);
+    el.classList.toggle('hidden', !match);
+  });
+}
+
+// ── CALCULADORA VRAM ──────────────────────────
+function calcVRAM() {
+  const params = +document.getElementById('calc-params').value;
+  const factor = +document.getElementById('calc-quant').value;
+  const tamano = (params * factor).toFixed(1);
+  const vram = Math.ceil(params * factor * 1.1);
+  const viable = vram <= 12 ? '✅ SÍ' : vram <= 20 ? '⚠️ Parcial' : '❌ NO';
+  document.getElementById('out-tamano').textContent = tamano + ' GB';
+  document.getElementById('out-vram').textContent = vram + ' GB';
+  document.getElementById('out-recomendacion').textContent = viable;
+}
+calcVRAM();
+
+// ── EXPLORADOR: TIPOS DE MODELOS ──────────────
+const modelosData = [
+  {
+    color: '#1E88E5', emoji: '📄',
+    title: 'Modelo Base (Pretrained)',
+    sub: 'Solo predice el siguiente token',
+    chips: ['Base', 'Investigación', 'Fine-tuning'],
+    detail: 'Entrenado en texto crudo. No sigue instrucciones. Si escribes "La capital de Francia es", continúa naturalmente. Son la materia prima para los demás tipos.',
+    extra: 'Sin sufijo Instruct/Chat en el nombre. Ej: Llama-3-8B (sin sufijo).',
+    pros: ['Base para fine-tuning personalizado', 'Máxima flexibilidad'],
+    cons: ['No sigue instrucciones', 'Requiere fine-tuning para uso práctico']
+  },
+  {
+    color: '#059669', emoji: '🤖',
+    title: 'Modelo Instruct / IT',
+    sub: 'Entiende órdenes directas — el más común',
+    chips: ['-Instruct', '-IT', 'SFT'],
+    detail: '"Resume en 3 puntos" y lo hace. "Traduce al inglés" y lo hace. Recibió SFT (Supervised Fine-Tuning) con miles de pares instrucción→respuesta.',
+    extra: 'Busca -Instruct o -IT en el nombre. Ej: Llama-4-8B-Instruct, Qwen3-7B-IT.',
+    pros: ['Sigue instrucciones específicas', 'El más común en LM Studio'],
+    cons: ['Menos fluido en conversación larga', 'Más formal que -Chat']
+  },
+  {
+    color: '#7C3AED', emoji: '💬',
+    title: 'Modelo Chat',
+    sub: 'Instruct + RLHF — más natural en diálogo',
+    chips: ['-Chat', 'RLHF'],
+    detail: 'Un Instruct que además recibió RLHF: humanos evaluaron sus respuestas y el modelo aprendió a ser más natural y conversacional.',
+    extra: 'Busca -Chat en el nombre. Ej: Mistral-7B-v0.1-Chat.',
+    pros: ['Más natural en diálogo largo', 'Respuestas más amigables'],
+    cons: ['Puede ser más verboso']
+  },
+  {
+    color: '#F59E0B', emoji: '🧠',
+    title: 'Modelo de Razonamiento',
+    sub: 'Piensa antes de responder — mejor en lógica',
+    chips: ['-R1', '-Thinking', 'DeepSeek'],
+    detail: 'Genera un bloque interno de "pensamiento" (<think>...</think>) antes de responder. Mucho mejor en matemáticas, lógica y código complejo.',
+    extra: 'Ej: DeepSeek-R1, Qwen3 en modo thinking. Reconocibles por -R1 o -Thinking.',
+    pros: ['Mejor en lógica y matemáticas', 'Razonamiento auditable'],
+    cons: ['Más lento', 'Usa más tokens']
+  },
+  {
+    color: '#EA580C', emoji: '👁️',
+    title: 'Modelo Multimodal',
+    sub: 'Procesa texto + imágenes',
+    chips: ['-Vision', '-VL', 'Multimodal'],
+    detail: 'Puede recibir capturas de pantalla, fotos o diagramas junto con tu pregunta. Ejemplos: LLaVA, Gemma 3 Vision, Qwen-VL.',
+    extra: 'Requieren más VRAM que equivalentes solo-texto del mismo tamaño.',
+    pros: ['Analiza imágenes y capturas', 'Útil para debugging visual'],
+    cons: ['Más pesados en VRAM', 'Más lentos']
+  },
+  {
+    color: '#DC2626', emoji: '🔓',
+    title: 'Modelo Uncensored',
+    sub: 'Sin restricciones de alineación',
+    chips: ['-Uncensored', 'Dolphin', 'Abliterated'],
+    detail: 'Proceso de abliteration removió las restricciones RLHF. Responde sin filtros activos. LM Studio no verifica contenido — cualquier .gguf válido corre.',
+    extra: 'Creadores: Eric Hartford (Dolphin), Orenguteng (Lexi), bartowski (GGUF).',
+    pros: ['Sin rechazos arbitrarios', 'Libertad creativa total'],
+    cons: ['Usuario 100% responsable del output', 'No apto para entornos compartidos']
+  }
+];
+
+document.getElementById('explorer-modelos').innerHTML = modelosData.map((d) => `
+<div class="explorer-card" onclick="this.classList.toggle('open')" style="border-left:4px solid ${d.color}">
+  <div class="explorer-header">
+    <div class="explorer-num" style="color:${d.color}">${d.emoji}</div>
+    <div class="explorer-meta">
+      <h4>${d.title}</h4>
+      <p>${d.sub}</p>
+    </div>
+    <div class="explorer-chevron">▼</div>
+  </div>
+  <div class="explorer-body">
+    <div class="badge-row">${d.chips.map(c=>`<span class="badge" style="background:${d.color}20;color:${d.color};border:1px solid ${d.color}40">${c}</span>`).join('')}</div>
+    <p style="font-size:14px;margin-bottom:8px">${d.detail}</p>
+    <p style="font-size:12px;color:var(--text2);font-style:italic;margin-bottom:12px">${d.extra}</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:var(--green-l);border-radius:8px;padding:10px">
+        <div style="font-size:10px;font-weight:700;color:var(--green);margin-bottom:5px;text-transform:uppercase">✅ Ventajas</div>
+        ${d.pros.map(p=>`<div style="font-size:12px;margin-bottom:3px">• ${p}</div>`).join('')}
+      </div>
+      <div style="background:var(--red-l);border-radius:8px;padding:10px">
+        <div style="font-size:10px;font-weight:700;color:var(--red);margin-bottom:5px;text-transform:uppercase">⚠️ Límites</div>
+        ${d.cons.map(c=>`<div style="font-size:12px;margin-bottom:3px">• ${c}</div>`).join('')}
+      </div>
+    </div>
+  </div>
+</div>`).join('');
+
+// ── CHECKLIST INSTALACIÓN ─────────────────────
+const pasoInstalacion = [
+  { txt: '<strong>Descarga</strong> desde lmstudio.ai → botón Download para Windows. Archivo .exe aprox. 400–700 MB' },
+  { txt: '<strong>Ejecuta el instalador</strong> — doble clic, acepta UAC. Duración: 2–4 minutos en SSD NVMe' },
+  { txt: '<strong>Verifica detección de GPU</strong> — barra inferior muestra tu tarjeta gráfica si CUDA está activo' },
+  { txt: '<strong>Verifica CUDA</strong> — CMD → <code>nvidia-smi</code> → busca "CUDA Version 11.8+" o 12.x' },
+  { txt: '<strong>Ajusta configuración</strong> — Settings → Hardware Acceleration ON → carpeta de modelos en SSD' }
+];
+document.getElementById('checklist-instalacion').innerHTML = pasoInstalacion.map(p => `
+<li onclick="toggleCheck(this)">
+  <div class="check-box"></div>
+  <div class="check-text">${p.txt}</div>
+</li>`).join('');
+
+// ── CHECKLIST SERVIDOR ────────────────────────
+const pasoServidor = [
+  { txt: '<strong>Modelo cargado</strong> — pestaña Chat muestra indicador verde. Sin modelo = sin servidor' },
+  { txt: '<strong>Ir a Developer / Local Server</strong> — icono &lt;&gt; en la barra lateral izquierda' },
+  { txt: '<strong>Start Server</strong> — toggle ON → estado verde: "Server running on port 1234"' },
+  { txt: '<strong>Verificar en navegador</strong> — navega a <code>localhost:1234/v1/models</code> → JSON = OK' },
+  { txt: '<strong>Prueba con curl</strong> — envía pregunta de prueba, verifica respuesta JSON del modelo' }
+];
+document.getElementById('checklist-servidor').innerHTML = pasoServidor.map(p => `
+<li onclick="toggleCheck(this)">
+  <div class="check-box"></div>
+  <div class="check-text">${p.txt}</div>
+</li>`).join('');
+
+// ── TIMELINE ──────────────────────────────────
+const timelineData = [
+  { label: '1. Abrir LM Studio', desc: 'Verificar GPU en barra inferior. Sin GPU detectada = modo CPU (10× más lento).', color: '#1E88E5' },
+  { label: '2. Cargar el modelo', desc: 'Chat → selector → esperar barra 100% (10–45 seg). Indicador verde = listo para usar.', color: '#7C3AED' },
+  { label: '3. Chatear directamente', desc: 'Interfaz de chat de LM Studio. Ajusta GPU Offload y Context Window según necesidad.', color: '#059669' },
+  { label: '4. Iniciar servidor (opcional)', desc: 'Developer → Start Server → puerto 1234. Solo DESPUÉS de que el modelo esté cargado.', color: '#F59E0B' },
+  { label: '5. Conectar apps', desc: 'Apunta base_url a http://localhost:1234/v1. LangChain, AutoGen, Open WebUI, n8n, etc.', color: '#0F766E' },
+  { label: '6. Cerrar correctamente', desc: 'Stop Server → descargar modelo → cerrar LM Studio. La VRAM queda libre.', color: '#EA580C' }
+];
+document.getElementById('timeline-sesion').innerHTML = timelineData.map((t, i) => `
+<div class="tl-item">
+  <div class="tl-dot" style="background:${t.color};box-shadow:0 0 0 2px ${t.color}">${i+1}</div>
+  <div class="tl-content" style="border-left:3px solid ${t.color}">
+    <div class="tl-label">${t.label}</div>
+    <div class="tl-desc">${t.desc}</div>
+  </div>
+</div>`).join('');
+
+// ── EXPLORADOR RIESGOS ────────────────────────
+const riesgosData = [
+  {
+    color: '#DC2626', emoji: '🌡️',
+    title: 'Sobrecalentamiento de GPU',
+    sub: 'GPU al 100% por horas puede dañar tu laptop',
+    solucion: 'Usa MSI Afterburner o HWiNFO64 para monitorear. Temperatura segura: GPU < 85°C. Invierte en base refrigerante para sesiones largas.'
+  },
+  {
+    color: '#EA580C', emoji: '⚠️',
+    title: 'Modelos de fuentes no verificadas',
+    sub: 'Un .gguf de sitio desconocido puede manipular el comportamiento',
+    solucion: 'Descarga SIEMPRE desde Hugging Face, LM Studio Hub o repos oficiales. Verifica hash SHA256 cuando esté disponible.'
+  },
+  {
+    color: '#F59E0B', emoji: '💾',
+    title: 'Consumo de RAM y cuellos de botella',
+    sub: 'RAM al 90%+ = el SO pacea y todo se lentifica',
+    solucion: 'Cierra juegos y apps GPU-intensivas antes de cargar el modelo. Revisa el Administrador de Tareas regularmente.'
+  },
+  {
+    color: '#1E88E5', emoji: '🌐',
+    title: 'Privacidad en red local',
+    sub: 'Con 0.0.0.0 cualquier dispositivo en tu red puede conectarse',
+    solucion: 'Usa 127.0.0.1 salvo que necesites acceso en red. En redes no confiables, configura contraseña en el servidor de LM Studio.'
+  },
+  {
+    color: '#7C3AED', emoji: '📦',
+    title: 'Consumo de almacenamiento',
+    sub: 'Fácil acumular 50–100 GB en modelos',
+    solucion: 'Borra modelos que no uses desde la pestaña de gestión. Usa disco externo SSD para modelos de uso ocasional.'
+  },
+  {
+    color: '#DC2626', emoji: '🔓',
+    title: 'Uso responsable (Uncensored)',
+    sub: 'El usuario es 100% responsable del output',
+    solucion: 'Nunca generes contenido de abuso sexual, violencia real o daño a personas. En muchos países ya es ilegal independientemente de la herramienta.'
+  }
+];
+
+document.getElementById('explorer-riesgos').innerHTML = riesgosData.map(d => `
+<div class="explorer-card" onclick="this.classList.toggle('open')" style="border-left:4px solid ${d.color}">
+  <div class="explorer-header">
+    <div class="explorer-num" style="color:${d.color}">${d.emoji}</div>
+    <div class="explorer-meta">
+      <h4>${d.title}</h4>
+      <p>${d.sub}</p>
+    </div>
+    <div class="explorer-chevron">▼</div>
+  </div>
+  <div class="explorer-body">
+    <div class="callout callout-success" style="margin:12px 0 0">
+      <span class="callout-title">✅ Solución</span>
+      <p>${d.solucion}</p>
+    </div>
+  </div>
+</div>`).join('');
+
+// ── EXPLORADOR TROUBLESHOOT ───────────────────
+const troubleshootData = [
+  {
+    color: '#DC2626', emoji: '🐢',
+    title: 'Respuestas muy lentas (2–5 t/s)',
+    sub: 'El modelo corre en CPU en lugar de GPU',
+    solucion: 'Sube el slider GPU Offload al máximo. Verifica que la GPU sea detectada en la barra inferior. Actualiza drivers NVIDIA.'
+  },
+  {
+    color: '#EA580C', emoji: '💥',
+    title: '"Out of Memory" al cargar',
+    sub: 'El modelo excede tu VRAM disponible',
+    solucion: 'Cambia a cuantización menor (Q5→Q4→Q3). Elige modelo más pequeño (13B→8B→7B). Cierra otras apps que usen GPU.'
+  },
+  {
+    color: '#F59E0B', emoji: '🔌',
+    title: 'Servidor no responde',
+    sub: 'El modelo no terminó de cargar',
+    solucion: 'Espera que la barra llegue al 100% en la pestaña Chat. El endpoint /v1 solo activa cuando el modelo está completo en memoria.'
+  },
+  {
+    color: '#7C3AED', emoji: '🔄',
+    title: 'IA entra en bucles / repite',
+    sub: 'Repeat Penalty demasiado bajo (cerca de 1.0)',
+    solucion: 'Sube Repeat Penalty a 1.1 o 1.2. Verifica que Context Window no supere el máximo del modelo. Reduce la temperatura.'
+  }
+];
+
+document.getElementById('explorer-troubleshoot').innerHTML = troubleshootData.map(d => `
+<div class="explorer-card" onclick="this.classList.toggle('open')" style="border-left:4px solid ${d.color}">
+  <div class="explorer-header">
+    <div class="explorer-num" style="color:${d.color}">${d.emoji}</div>
+    <div class="explorer-meta">
+      <h4>${d.title}</h4>
+      <p>${d.sub}</p>
+    </div>
+    <div class="explorer-chevron">▼</div>
+  </div>
+  <div class="explorer-body">
+    <div class="callout callout-success" style="margin:12px 0 0">
+      <span class="callout-title">✅ Solución</span>
+      <p>${d.solucion}</p>
+    </div>
+  </div>
+</div>`).join('');
+
+// ── GLOSARIO ──────────────────────────────────
+const glosarioData = [
+  { term: 'LLM', def: 'Large Language Model. Modelo de lenguaje grande — archivo matemático con miles de millones de parámetros entrenado en texto masivo.' },
+  { term: 'GGUF', def: 'Formato de archivo para modelos cuantizados compatible con llama.cpp y LM Studio. Permite ejecutar LLMs en hardware de consumo.' },
+  { term: 'llama.cpp', def: 'Motor de inferencia de bajo nivel sobre el que se ejecuta LM Studio. Optimizado para NVIDIA CUDA, AMD ROCm, Apple Metal y CPU pura.' },
+  { term: 'Cuantización', def: 'Proceso de comprimir los parámetros del modelo a menos bits (Q2, Q4, Q8) reduciendo tamaño con mínima pérdida de calidad.' },
+  { term: 'VRAM', def: 'Video RAM — memoria dedicada de la GPU. El factor más importante para la velocidad de inferencia local.' },
+  { term: 'Inferencia', def: 'El proceso de generar respuestas a partir de un modelo ya entrenado. Solo requiere ejecutar cálculos sobre pesos existentes.' },
+  { term: 'Token', def: 'Unidad mínima de texto. Aproximadamente 3/4 de una palabra en español. Los modelos generan respuestas token a token.' },
+  { term: 'Context Window', def: 'Cantidad máxima de tokens que el modelo puede "recordar" en una conversación. Más contexto = más VRAM usada.' },
+  { term: 'GPU Offload', def: 'Número de capas del modelo ejecutadas en GPU vs CPU. Máximo = máxima velocidad. Reducir si hay Out of Memory.' },
+  { term: 'Q4_K_M', def: 'Cuantización de 4 bits, variante K_M (media). El estándar recomendado. ~4.8 GB para modelos 8B con calidad muy buena.' },
+  { term: 'SFT', def: 'Supervised Fine-Tuning. Entrenamiento adicional para convertir un modelo Base en Instruct mostrando pares instrucción→respuesta.' },
+  { term: 'RLHF', def: 'Reinforcement Learning from Human Feedback. Técnica de alineación donde humanos evalúan respuestas y el modelo aprende a ser más útil.' },
+  { term: 'DPO', def: 'Direct Preference Optimization. Alternativa más eficiente al RLHF para alinear modelos. Usada también para crear uncensored.' },
+  { term: 'Abliteration', def: 'Proceso de fine-tuning para remover restricciones de alineación. Produce modelos "uncensored" sin filtros de seguridad.' },
+  { term: 'Temperatura', def: 'Controla la aleatoriedad. 0 = determinista. 1+ = creativo. Para código: 0.1–0.3. Para escritura: 0.7–1.0.' },
+  { term: 'Repeat Penalty', def: 'Penaliza la repetición de tokens ya usados. 1.0 = sin penalización (puede entrar en bucles). 1.1–1.2 = recomendado.' },
+  { term: 'API REST', def: 'Interfaz HTTP que permite a otras apps enviar peticiones al modelo. LM Studio la expone compatible con OpenAI en puerto 1234.' },
+  { term: 'localhost', def: '127.0.0.1 — dirección que apunta al mismo computador. El servidor de LM Studio escucha aquí por defecto.' },
+  { term: 'Parámetros (B)', def: 'Número de valores numéricos del modelo. 7B = 7 mil millones. Más parámetros = generalmente mejor calidad pero más VRAM.' },
+  { term: 'Open WebUI', def: 'Interfaz web tipo ChatGPT instalable localmente. Se conecta al servidor de LM Studio para acceso desde cualquier dispositivo en la red.' },
+  { term: 'RAG', def: 'Retrieval-Augmented Generation. Combina el modelo con una base de conocimiento externa para responder con información actualizada o privada.' },
+  { term: 'Instruct', def: 'Tipo de modelo fine-tuneado con SFT para seguir instrucciones directas. El más común en LM Studio. Reconocible por -Instruct o -IT.' }
+];
+
+document.getElementById('glosario-grid').innerHTML = glosarioData
+  .sort((a, b) => a.term.localeCompare(b.term))
+  .map(g => `
+<div class="glosario-item">
+  <div class="glosario-term">${g.term}</div>
+  <div class="glosario-def">${g.def}</div>
+</div>`).join('');
+</script>
+</body>
+</html>
